@@ -40,8 +40,8 @@ def build_preprocessor(X_train):
 
     preprocessor = ColumnTransformer(
         transformers = [
-            ("num", StandardScaler(), numerical_features),
-            ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features)
+            ("numbers", StandardScaler(), numerical_features),
+            ("categories", OneHotEncoder(handle_unknown="ignore"), categorical_features)
         ]
     )
 
