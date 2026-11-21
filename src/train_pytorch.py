@@ -24,7 +24,7 @@ class ChurnMLP(nn.Module):
         return self.network(x)
 
 
-def prepare_tensors(X_train, X_val, y_train, y_val):
+def prepare_tensors(X_train, X_val, y_train, y_val, return_preprocessor = False):
     preprocessor = build_preprocessor(X_train)
 
     X_train_processed = preprocessor.fit_transform(X_train)
@@ -49,6 +49,15 @@ def prepare_tensors(X_train, X_val, y_train, y_val):
         y_val.to_numpy(),
         dtype=torch.float32,
     ).unsqueeze(1)
+
+    if return_preprocessor:
+        return (
+            X_train_tensor,
+            X_val_tensor,
+            y_train_tensor,
+            y_val_tensor,
+            preprocessor,
+        )
 
     return X_train_tensor, X_val_tensor, y_train_tensor, y_val_tensor
 
