@@ -1,4 +1,3 @@
-
 import copy
 
 import pandas as pd
@@ -51,25 +50,10 @@ def prepare_tensors(X_train, X_val, y_train, y_val):
     return X_train_tensor, X_val_tensor, y_train_tensor, y_val_tensor
 
 
-def main():
-    # Load and split data
-    df = pd.read_csv("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
-
-    X, y = prepare_data(df)
-    X_train, X_val, _, y_train, y_val, _ = split_data(X, y)
-
-    X_train_tensor, X_val_tensor, y_train_tensor, y_val_tensor = (
-        prepare_tensors(X_train, X_val, y_train, y_val)
-    )
-
-    # Initialize model
-    torch.manual_seed(42)
-
-    model = ChurnMLP(input_size=X_train_tensor.shape[1])
+def train_model(model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tensor):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    # Training settings
     epochs = 500
     patience = 20
 
@@ -77,8 +61,8 @@ def main():
     best_model_state = None
     epochs_without_improvement = 0
 
-    # Training loop
     for epoch in range(epochs):
+        # Training
         model.train()
 
         logits = model(X_train_tensor)
@@ -95,7 +79,7 @@ def main():
             val_logits = model(X_val_tensor)
             val_loss = criterion(val_logits, y_val_tensor)
 
-        # Save best model parameters
+        # Track best model
         if val_loss.item() < best_val_loss:
             best_val_loss = val_loss.item()
             best_model_state = copy.deepcopy(model.state_dict())
@@ -103,7 +87,7 @@ def main():
         else:
             epochs_without_improvement += 1
 
-        # Print training progress
+        # Print progress
         if (epoch + 1) % 10 == 0:
             print(
                 f"Epoch {epoch + 1}: "
@@ -116,17 +100,41 @@ def main():
             print(f"Early stopping at epoch {epoch + 1}")
             break
 
-    # Restore best model parameters
+    # Restore best model weights
     model.load_state_dict(best_model_state)
     model.eval()
 
-    # Verify restored validation loss
-    with torch.no_grad():
-        val_logits = model(X_val_tensor)
-        restored_val_loss = criterion(val_logits, y_val_tensor)
-
     print(f"Best validation loss: {best_val_loss:.4f}")
-    print(f"Restored validation loss: {restored_val_loss.item():.4f}")
+
+    return model
+
+
+def main():
+    # Load data
+    df = pd.read_csv("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+
+    X, y = prepare_data(df)
+
+    X_train, X_val, _, y_train, y_val, _ = split_data(X, y)
+
+    # Prepare tensors
+    X_train_tensor, X_val_tensor, y_train_tensor, y_val_tensor = (
+        prepare_tensors(X_train, X_val, y_train, y_val)
+    )
+
+    # Initialize model
+    torch.manual_seed(42)
+
+    model = ChurnMLP(input_size=X_train_tensor.shape[1])
+
+    # Train model
+    model = train_model(
+        model,
+        X_train_tensor,
+        y_train_tensor,
+        X_val_tensor,
+        y_val_tensor,
+    )
 
 
 if __name__ == "__main__":
