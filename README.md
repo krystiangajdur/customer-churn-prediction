@@ -225,3 +225,7 @@ python -m pytest -v
 ## Tools
 
 Python 3.13 · pandas · NumPy · scikit-learn · PyTorch · Matplotlib · Seaborn · pytest
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
