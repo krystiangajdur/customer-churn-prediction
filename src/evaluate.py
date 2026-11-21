@@ -1,68 +1,79 @@
 import pandas as pd
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, average_precision_score, confusion_matrix
 
-from preprocess import prepare_data, split_data, build_preprocessor
+from sklearn.metrics import accuracy_score,precision_score,recall_score,f1_score,roc_auc_score,average_precision_score,confusion_matrix
+from preprocess import prepare_data, split_data
 from train_sklearn import build_dummy_pipeline, build_logistic_pipeline, build_random_forest_pipeline
 
-df = pd.read_csv("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
-
-X, y = prepare_data(df)
-
-X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)
-
-dummy_pipeline = build_dummy_pipeline(X_train)
-dummy_pipeline.fit(X_train, y_train)
-y_pred_dum = dummy_pipeline.predict(X_val)
-y_dum_prob = dummy_pipeline.predict_proba(X_val)[:, 1]
-
-print("Dummy predictions:", y_pred_dum[:10])
-print("Accuracy:", round(accuracy_score(y_val, y_pred_dum), 3))
-print("Precision:", round(precision_score(y_val, y_pred_dum, zero_division = 0), 3))
-print("Recall:", round(recall_score(y_val, y_pred_dum), 3))
-print("F1-score:", round(f1_score(y_val, y_pred_dum), 3))
-print("ROC-AUC:", round(roc_auc_score(y_val, y_dum_prob), 3))
-print("Average Precision:", round(average_precision_score(y_val, y_dum_prob), 3))
 
 
-logistic_pipeline = build_logistic_pipeline(X_train)
-logistic_pipeline.fit(X_train, y_train)
-y_pred_log = logistic_pipeline.predict(X_val)
-y_log_prob = logistic_pipeline.predict_proba(X_val)[:, 1]
-
-print("\nLogistic regression Predictions:", y_pred_log[:10])
-print("Accuracy:", round(accuracy_score(y_val, y_pred_log), 3))
-print("Precision:", round(precision_score(y_val, y_pred_log), 3))
-print("Recall:", round(recall_score(y_val, y_pred_log), 3))
-print("F1-score:", round(f1_score(y_val, y_pred_log), 3))
-print("ROC-AUC:", round(roc_auc_score(y_val, y_log_prob), 3))
-print("Average Precision:", round(average_precision_score(y_val, y_log_prob), 3))
-for threshold in [0.3, 0.5, 0.7]:
-    y_pred = (y_log_prob >= threshold).astype(int)
-
-    print(f"\nThreshold: {threshold}")
-    print(f"Precision: {precision_score(y_val, y_pred):.3f}")
-    print(f"Recall: {recall_score(y_val, y_pred):.3f}")
-    print(f"F1-score: {f1_score(y_val, y_pred):.3f}")
-
-threshold = 0.3
-
-y_proba = logistic_pipeline.predict_proba(X_val)[:, 1]
-y_pred = (y_proba >= threshold).astype(int)
-
-cm = confusion_matrix(y_val, y_pred)
-
-print(cm)
+def evaluate_model(y_true, y_pred, y_proba):
+    return {
+        "accuracy": accuracy_score(y_true, y_pred),
+        "precision": precision_score(y_true, y_pred, zero_division=0),
+        "recall": recall_score(y_true, y_pred, zero_division=0),
+        "f1": f1_score(y_true, y_pred, zero_division=0),
+        "roc_auc": roc_auc_score(y_true, y_proba),
+        "average_precision": average_precision_score(y_true, y_proba),
+    }
 
 
-rf_pipeline = build_random_forest_pipeline(X_train)
-rf_pipeline.fit(X_train, y_train)
-y_pred_rf = rf_pipeline.predict(X_val)
-y_rf_prob = rf_pipeline.predict_proba(X_val)[:, 1]
+def print_metrics(model_name, metrics):
+    print(f"\n{model_name}")
 
-print("\nRandom forest predictions:", y_pred_rf[:10])
-print("Accuracy:", round(accuracy_score(y_val, y_pred_rf), 3))
-print("Precision:", round(precision_score(y_val, y_pred_rf), 3))
-print("Recall:", round(recall_score(y_val, y_pred_rf), 3))
-print("F1-score:", round(f1_score(y_val, y_pred_rf), 3))
-print("ROC-AUC:", round(roc_auc_score(y_val, y_rf_prob), 3))
-print("Average Precision:", round(average_precision_score(y_val, y_rf_prob), 3))
+    for name, value in metrics.items():
+        print(f"{name}: {value:.3f}")
+
+
+def main():
+    # Load and split data
+    df = pd.read_csv("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+
+    X, y = prepare_data(df)
+    X_train, X_val, _, y_train, y_val, _ = split_data(X, y)
+
+    # Define sklearn models
+    models = {
+        "Dummy": build_dummy_pipeline(X_train),
+        "Logistic Regression": build_logistic_pipeline(X_train),
+        "Random Forest": build_random_forest_pipeline(X_train),
+    }
+
+    for model_name, pipeline in models.items():
+        pipeline.fit(X_train, y_train)
+
+        y_pred = pipeline.predict(X_val)
+        y_proba = pipeline.predict_proba(X_val)[:, 1]
+
+        metrics = evaluate_model(y_val, y_pred, y_proba)
+        print_metrics(model_name, metrics)
+
+        # Analyze Logistic Regression thresholds
+        if model_name == "Logistic Regression":
+            for threshold in [0.3, 0.5, 0.7]:
+                threshold_pred = (y_proba >= threshold).astype(int)
+
+                print(f"\nThreshold: {threshold}")
+                print(
+                    f"Precision: "
+                    f"{precision_score(y_val, threshold_pred, zero_division=0):.3f}"
+                )
+                print(
+                    f"Recall: "
+                    f"{recall_score(y_val, threshold_pred, zero_division=0):.3f}"
+                )
+                print(
+                    f"F1-score: "
+                    f"{f1_score(y_val, threshold_pred, zero_division=0):.3f}"
+                )
+
+            # Confusion matrix at threshold 0.3
+            threshold_pred = (y_proba >= 0.3).astype(int)
+
+            cm = confusion_matrix(y_val, threshold_pred)
+
+            print("\nLogistic Regression confusion matrix (threshold=0.3):")
+            print(cm)
+
+
+if __name__ == "__main__":
+    main()
