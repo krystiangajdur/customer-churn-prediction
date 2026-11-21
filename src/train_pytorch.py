@@ -1,10 +1,13 @@
 import copy
-
 import pandas as pd
 import torch
 from torch import nn
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 from preprocess import prepare_data, split_data, build_preprocessor
+from evaluate import evaluate_model
+
+
 
 
 class ChurnMLP(nn.Module):
@@ -135,6 +138,37 @@ def main():
         X_val_tensor,
         y_val_tensor,
     )
+
+    model.eval()
+
+    with torch.no_grad():
+        val_logits = model(X_val_tensor)
+        val_probabilites = torch.sigmoid(val_logits)
+
+    y_proba = val_probabilites.squeeze(1).numpy()
+    y_pred = (y_proba >= 0.5).astype(int)
+    y_true = y_val_tensor.squeeze(1).numpy()
+
+    metrics = evaluate_model(y_true, y_pred, y_proba)
+
+    print("\nPytorch MLP validation results:")
+
+    for name, value in metrics.items():
+        print(f'{name}: {value:.3f}')
+
+    for threshold in [0.3, 0.5, 0.7]:
+        threshold_pred = (y_proba >= threshold).astype(int)
+
+        precision = precision_score(
+            y_true, threshold_pred, zero_division=0
+        )
+        recall = recall_score(y_true, threshold_pred)
+        f1 = f1_score(y_true, threshold_pred)
+
+        print(f"\nThreshold: {threshold}")
+        print(f"Precision: {precision:.3f}")
+        print(f"Recall: {recall:.3f}")
+        print(f"F1-score: {f1:.3f}")
 
 
 if __name__ == "__main__":
