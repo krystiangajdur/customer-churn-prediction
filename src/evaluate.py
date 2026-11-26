@@ -36,13 +36,11 @@ def print_metrics(model_name, metrics):
 
 
 def main():
-    # Load and split data
     df = pd.read_csv("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
 
     X, y = prepare_data(df)
     X_train, X_val, _, y_train, y_val, _ = split_data(X, y)
 
-    # Define sklearn models
     models = {
         "Dummy": build_dummy_pipeline(X_train),
         "Logistic Regression": build_logistic_pipeline(X_train),
@@ -58,7 +56,6 @@ def main():
         metrics = evaluate_model(y_val, y_pred, y_proba)
         print_metrics(model_name, metrics)
 
-        # Analyze Logistic Regression thresholds
         if model_name == "Logistic Regression":
             for threshold in [0.3, 0.5, 0.7]:
                 threshold_pred = (y_proba >= threshold).astype(int)
@@ -76,7 +73,6 @@ def main():
                     f"F1-score: {f1_score(y_val, threshold_pred, zero_division=0):.3f}"
                 )
 
-            # Confusion matrix at threshold 0.3
             threshold_pred = (y_proba >= 0.3).astype(int)
 
             cm = confusion_matrix(y_val, threshold_pred)

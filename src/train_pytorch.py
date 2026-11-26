@@ -73,7 +73,6 @@ def train_model(model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tenso
     epochs_without_improvement = 0
 
     for epoch in range(epochs):
-        # Training
         model.train()
 
         logits = model(X_train_tensor)
@@ -83,14 +82,12 @@ def train_model(model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tenso
         loss.backward()
         optimizer.step()
 
-        # Validation
         model.eval()
 
         with torch.no_grad():
             val_logits = model(X_val_tensor)
             val_loss = criterion(val_logits, y_val_tensor)
 
-        # Track best model
         if val_loss.item() < best_val_loss:
             best_val_loss = val_loss.item()
             best_model_state = copy.deepcopy(model.state_dict())
@@ -98,7 +95,6 @@ def train_model(model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tenso
         else:
             epochs_without_improvement += 1
 
-        # Print progress
         if (epoch + 1) % 10 == 0:
             print(
                 f"Epoch {epoch + 1}: "
@@ -106,7 +102,6 @@ def train_model(model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tenso
                 f"Val loss = {val_loss.item():.4f}"
             )
 
-        # Early stopping
         if epochs_without_improvement >= patience:
             print(f"Early stopping at epoch {epoch + 1}")
             break

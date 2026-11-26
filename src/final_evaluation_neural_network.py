@@ -8,24 +8,20 @@ from train_pytorch import ChurnMLP, prepare_tensors, train_model
 
 
 def main():
-    # Load and split data
     df = pd.read_csv("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
 
     X, y = prepare_data(df)
 
     X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)
 
-    # Prepare training and validation tensors
     (X_train_tensor, X_val_tensor, y_train_tensor, y_val_tensor, preprocessor) = (
         prepare_tensors(X_train, X_val, y_train, y_val, return_preprocessor=True)
     )
 
-    # Transform test data using the training preprocessor
     X_test_processed = preprocessor.transform(X_test)
 
     X_test_tensor = torch.tensor(X_test_processed, dtype=torch.float32)
 
-    # Initialize and train MLP
     torch.manual_seed(42)
 
     model = ChurnMLP(input_size=X_train_tensor.shape[1])
@@ -34,7 +30,6 @@ def main():
         model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tensor
     )
 
-    # Final test evaluation
     model.eval()
 
     with torch.no_grad():
@@ -44,11 +39,9 @@ def main():
     y_proba = test_probabilities.squeeze(1).numpy()
     y_true = y_test.to_numpy()
 
-    # Threshold selected during validation
     threshold = 0.3
     y_pred = (y_proba >= threshold).astype(int)
 
-    # Calculate test metrics
     metrics = evaluate_model(y_true, y_pred, y_proba)
 
     print_metrics("PyTorch MLP — Test", metrics)
