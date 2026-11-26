@@ -1,3 +1,4 @@
+
 # Customer Churn Prediction
 
 A small end-to-end machine learning project predicting customer churn for a telecommunications provider using the **IBM Telco Customer Churn** dataset. It compares three classical scikit-learn baselines with a simple neural network built in PyTorch.
@@ -12,6 +13,7 @@ The project focuses on reproducible preprocessing, a leakage-aware train/validat
 - A scikit-learn `Pipeline` and `ColumnTransformer` for categorical encoding and numerical scaling.
 - PyTorch MLP trained with `BCEWithLogitsLoss`, Adam, and early stopping based on validation loss.
 - Model and decision-threshold selection performed on validation data, followed by a final evaluation on held-out test data.
+- The selected Logistic Regression pipeline can be saved with `joblib` and reused for inference without retraining.
 
 ## Dataset and exploratory analysis
 
@@ -38,6 +40,8 @@ customer-churn-prediction/
 ├── data/
 │   └── raw/
 │       └── WA_Fn-UseC_-Telco-Customer-Churn.csv
+├── models/
+│   └── churn_pipeline.joblib      # Generated locally; ignored by Git
 ├── notebooks/
 │   └── 01_eda.ipynb
 ├── src/
@@ -46,10 +50,12 @@ customer-churn-prediction/
 │   ├── train_pytorch.py
 │   ├── evaluate.py
 │   ├── final_evaluation_logistic_regression.py
-│   └── final_evaluation_neural_network.py
+│   ├── final_evaluation_neural_network.py
+│   └── predict.py
 ├── tests/
 │   └── test_preprocessing.py
 ├── pyproject.toml
+├── LICENSE
 └── README.md
 ```
 
@@ -67,11 +73,15 @@ python -m venv .venv
 
 Activate the environment:
 
-```bash
-# Linux / macOS
-source .venv/bin/activate
+**Linux / macOS:**
 
-# Windows PowerShell
+```bash
+source .venv/bin/activate
+```
+
+**Windows PowerShell:**
+
+```powershell
 .venv\Scripts\Activate.ps1
 ```
 
@@ -81,7 +91,7 @@ Install the project and its dependencies:
 python -m pip install -e .
 ```
 
-If `pyproject.toml` defines a `dev` optional extra, install the development dependencies (including `pytest`) with:
+To install the development dependencies, including `pytest` and `ruff`:
 
 ```bash
 python -m pip install -e ".[dev]"
@@ -99,7 +109,9 @@ The raw dataset CSV must be present at the path shown above. Run all commands be
 4. Fit numerical `StandardScaler` and categorical `OneHotEncoder(handle_unknown="ignore")` transformations on **training data only**.
 5. Apply the already fitted transformations to validation and test data; the 19 input features expand to **45 encoded features**.
 
-Classical models use scikit-learn pipelines. The PyTorch MLP uses the same training-only preprocessing and converts transformed features and labels into `float32` tensors. The validation set is used for model comparison, the MLP's early stopping, and threshold selection. The test set is reserved for final reporting.
+Classical models use scikit-learn pipelines. The PyTorch MLP uses the same training-only preprocessing and converts transformed features and labels into `float32` tensors.
+
+The validation set is used for model comparison, the MLP's early stopping, and threshold selection. The test set is reserved for final reporting.
 
 ### Models
 
@@ -110,7 +122,9 @@ Classical models use scikit-learn pipelines. The PyTorch MLP uses the same train
 | Random Forest | `n_estimators=100`, `random_state=42` |
 | PyTorch MLP | `45 → 32 → ReLU → 1`, Adam (`lr=0.001`), `BCEWithLogitsLoss`, up to 500 full-batch epochs, early stopping (`patience=20`) |
 
-The MLP outputs a **logit**. Sigmoid is applied to obtain a probability for evaluation; `BCEWithLogitsLoss` takes logits directly during training. The best MLP weights are restored based on validation loss.
+The MLP outputs a **logit**. Sigmoid is applied to obtain a probability for evaluation; `BCEWithLogitsLoss` takes logits directly during training.
+
+The best MLP weights are restored based on validation loss.
 
 ### Evaluation metrics
 
@@ -119,7 +133,7 @@ The MLP outputs a **logit**. Sigmoid is applied to obtain a probability for eval
 - **Recall:** fraction of actual churners detected by the model.
 - **F1-score:** harmonic mean of precision and recall.
 - **ROC-AUC:** ranking performance across decision thresholds.
-- **Average Precision (AP):** summary of the precision–recall curve, calculated with scikit-learn's `average_precision_score` (not trapezoidal PR-AUC).
+- **Average Precision (AP):** summary of the precision-recall curve, calculated with scikit-learn's `average_precision_score` (not trapezoidal PR-AUC).
 
 Precision, recall, F1, and accuracy depend on the decision threshold. ROC-AUC and Average Precision are calculated from predicted probabilities.
 
@@ -149,11 +163,17 @@ A lower threshold prioritizes **recall**, identifying more customers who may chu
 | PyTorch MLP | 0.5 | 0.684 | 0.578 | 0.626 |
 | PyTorch MLP | 0.7 | 0.777 | 0.214 | 0.335 |
 
-**Selected model: Logistic Regression, threshold = 0.3.** This selection was made using validation results, prioritizing recall, while also considering model simplicity and the very small differences in ranking metrics. There is no claim that its performance is statistically significantly better than that of the MLP.
+**Selected model: Logistic Regression, threshold = 0.3.**
+
+This selection was made using validation results, prioritizing recall, while also considering model simplicity and the very small differences in ranking metrics.
+
+There is no claim that its performance is statistically significantly better than that of the MLP.
 
 ### Final held-out test results
 
-Both models below were evaluated using the **preselected threshold of 0.3**. The MLP test results are reported as an additional comparison; they were **not used to revise the selected model**.
+Both models below were evaluated using the **preselected threshold of 0.3**.
+
+The MLP test results are reported as an additional comparison; they were **not used to revise the selected model**.
 
 | Metric | Logistic Regression (selected) | PyTorch MLP (comparison) |
 |---|---:|---:|
@@ -171,13 +191,19 @@ The selected Logistic Regression model achieved this test confusion matrix (`row
 | Stay (0) | **776** (TN) | **259** (FP) |
 | Churn (1) | **86** (FN) | **288** (TP) |
 
-This means the selected model identified **288 of 374** actual churners (77.0% recall) while flagging **547 of 1,409** test customers for potential follow-up. Among those 547 flagged customers, 288 actually churned (52.7% precision).
+This means the selected model identified **288 of 374** actual churners (77.0% recall) while flagging **547 of 1,409** test customers for potential follow-up.
+
+Among those 547 flagged customers, 288 actually churned (52.7% precision).
 
 ## Business interpretation and limitations
 
-At the selected 0.3 threshold, the model prioritizes identifying customers at risk of churn. The trade-off is that **259 customers who stayed** were incorrectly flagged in the test set, which could generate unnecessary outreach costs. At the same time, **86 actual churners** were missed.
+At the selected 0.3 threshold, the model prioritizes identifying customers at risk of churn.
 
-This is a **churn-risk prediction model, not a causal model or a retention-uplift model**. It does not estimate whether a discount or contact would prevent churn. An operational campaign would require assumptions or evidence about intervention costs, customer value, and treatment effectiveness.
+The trade-off is that **259 customers who stayed** were incorrectly flagged in the test set, which could generate unnecessary outreach costs. At the same time, **86 actual churners** were missed.
+
+This is a **churn-risk prediction model, not a causal model or a retention-uplift model**.
+
+It does not estimate whether a discount or contact would prevent churn. An operational campaign would require assumptions or evidence about intervention costs, customer value, and treatment effectiveness.
 
 Other limitations:
 
@@ -205,26 +231,68 @@ python src/final_evaluation_logistic_regression.py
 python src/final_evaluation_neural_network.py
 ```
 
-The final-evaluation scripts reproduce the relevant training steps before evaluating the models; no pre-trained model files are required. The neural-network initialization uses a fixed PyTorch seed for repeatability within the same environment.
+The final-evaluation scripts reproduce the relevant training steps before evaluating the models.
+
+The neural-network initialization uses a fixed PyTorch seed for repeatability within the same environment.
+
+### Save the selected model and run inference
+
+The selected Logistic Regression model is stored as a fitted scikit-learn `Pipeline` containing both the `ColumnTransformer` preprocessing and classifier.
+
+The model artifact is generated locally using `joblib` and is not tracked in Git.
+
+**Save the trained model:**
+
+```bash
+python src/final_evaluation_logistic_regression.py
+```
+
+This creates:
+
+```text
+models/churn_pipeline.joblib
+```
+
+**Run inference using the saved model:**
+
+```bash
+python src/predict.py
+```
+
+The inference script:
+
+1. Loads the saved pipeline from `models/churn_pipeline.joblib`.
+2. Converts `TotalCharges` to numeric values and fills blanks with zero.
+3. Removes `customerID` and `Churn` columns if present.
+4. Uses the saved preprocessing and Logistic Regression model.
+5. Returns churn probabilities and binary predictions using the selected threshold of `0.3`.
+
+New input data must contain the feature columns expected by the fitted pipeline. A `Churn` label is not required.
+
+The saved model can be reused for predictions without retraining.
+
+**Security note:** Load `.joblib` files only from trusted sources, as deserializing untrusted model files can execute code.
 
 ### Run tests
 
 The project includes small `pytest` checks for data cleaning, immutability of the original DataFrame, and disjoint train/validation/test splits.
 
+**Linux / macOS:**
+
 ```bash
-# Linux / macOS
 PYTHONPATH=src python -m pytest -v
 ```
 
+**Windows PowerShell:**
+
 ```powershell
-# Windows PowerShell
 $env:PYTHONPATH="src"
 python -m pytest -v
 ```
 
 ## Tools
 
-Python 3.13 · pandas · NumPy · scikit-learn · PyTorch · Matplotlib · Seaborn · pytest
+Python 3.13 · pandas · NumPy · scikit-learn · PyTorch · Matplotlib · Seaborn · joblib · pytest
 
 ## License
 

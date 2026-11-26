@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "customer-churn-prediction"
 version = "0.1.0"
 description = "Customer churn prediction using scikit-learn and PyTorch"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "numpy",
     "pandas",
@@ -14,6 +14,7 @@ dependencies = [
     "seaborn",
     "scikit-learn",
     "torch",
+    "joblib"
 ]
 
 [project.optional-dependencies]
