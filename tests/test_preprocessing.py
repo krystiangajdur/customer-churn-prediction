@@ -2,13 +2,16 @@ import pandas as pd
 
 from preprocess import prepare_data, split_data
 
+
 def test_prepare_data():
-    df = pd.DataFrame({
-        "customerID": ["001", "002", "003"],
-        "tenure": [0, 12, 24],
-        "TotalCharges": [" ", "120.5", "300.0"],
-        "Churn": ["No", "Yes", "No"],
-    })
+    df = pd.DataFrame(
+        {
+            "customerID": ["001", "002", "003"],
+            "tenure": [0, 12, 24],
+            "TotalCharges": [" ", "120.5", "300.0"],
+            "Churn": ["No", "Yes", "No"],
+        }
+    )
 
     X, y = prepare_data(df)
 
@@ -19,12 +22,14 @@ def test_prepare_data():
 
 
 def test_prepare_data_does_not_modify_original():
-    df = pd.DataFrame({
-        "customerID": ["001", "002"],
-        "tenure": [0, 12],
-        "TotalCharges": [" ", "120.5"],
-        "Churn": ["No", "Yes"],
-    })
+    df = pd.DataFrame(
+        {
+            "customerID": ["001", "002"],
+            "tenure": [0, 12],
+            "TotalCharges": [" ", "120.5"],
+            "Churn": ["No", "Yes"],
+        }
+    )
 
     original_df = df.copy(deep=True)
 
@@ -34,9 +39,11 @@ def test_prepare_data_does_not_modify_original():
 
 
 def test_split_data():
-    X = pd.DataFrame({
-        "feature": range(100),
-    })
+    X = pd.DataFrame(
+        {
+            "feature": range(100),
+        }
+    )
 
     y = pd.Series([0] * 75 + [1] * 25)
 

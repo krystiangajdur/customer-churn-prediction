@@ -1,9 +1,20 @@
 import pandas as pd
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 
-from sklearn.metrics import accuracy_score,precision_score,recall_score,f1_score,roc_auc_score,average_precision_score,confusion_matrix
 from preprocess import prepare_data, split_data
-from train_sklearn import build_dummy_pipeline, build_logistic_pipeline, build_random_forest_pipeline
-
+from train_sklearn import (
+    build_dummy_pipeline,
+    build_logistic_pipeline,
+    build_random_forest_pipeline,
+)
 
 
 def evaluate_model(y_true, y_pred, y_proba):
@@ -25,13 +36,11 @@ def print_metrics(model_name, metrics):
 
 
 def main():
-    # Load and split data
     df = pd.read_csv("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
 
     X, y = prepare_data(df)
     X_train, X_val, _, y_train, y_val, _ = split_data(X, y)
 
-    # Define sklearn models
     models = {
         "Dummy": build_dummy_pipeline(X_train),
         "Logistic Regression": build_logistic_pipeline(X_train),
@@ -47,7 +56,6 @@ def main():
         metrics = evaluate_model(y_val, y_pred, y_proba)
         print_metrics(model_name, metrics)
 
-        # Analyze Logistic Regression thresholds
         if model_name == "Logistic Regression":
             for threshold in [0.3, 0.5, 0.7]:
                 threshold_pred = (y_proba >= threshold).astype(int)
@@ -62,11 +70,9 @@ def main():
                     f"{recall_score(y_val, threshold_pred, zero_division=0):.3f}"
                 )
                 print(
-                    f"F1-score: "
-                    f"{f1_score(y_val, threshold_pred, zero_division=0):.3f}"
+                    f"F1-score: {f1_score(y_val, threshold_pred, zero_division=0):.3f}"
                 )
 
-            # Confusion matrix at threshold 0.3
             threshold_pred = (y_proba >= 0.3).astype(int)
 
             cm = confusion_matrix(y_val, threshold_pred)

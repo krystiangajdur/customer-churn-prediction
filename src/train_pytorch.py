@@ -1,13 +1,12 @@
 import copy
+
 import pandas as pd
 import torch
+from sklearn.metrics import f1_score, precision_score, recall_score
 from torch import nn
-from sklearn.metrics import precision_score, recall_score, f1_score
 
-from preprocess import prepare_data, split_data, build_preprocessor
 from evaluate import evaluate_model
-
-
+from preprocess import build_preprocessor, prepare_data, split_data
 
 
 class ChurnMLP(nn.Module):
@@ -24,7 +23,7 @@ class ChurnMLP(nn.Module):
         return self.network(x)
 
 
-def prepare_tensors(X_train, X_val, y_train, y_val, return_preprocessor = False):
+def prepare_tensors(X_train, X_val, y_train, y_val, return_preprocessor=False):
     preprocessor = build_preprocessor(X_train)
 
     X_train_processed = preprocessor.fit_transform(X_train)
@@ -74,7 +73,6 @@ def train_model(model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tenso
     epochs_without_improvement = 0
 
     for epoch in range(epochs):
-        # Training
         model.train()
 
         logits = model(X_train_tensor)
@@ -84,14 +82,12 @@ def train_model(model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tenso
         loss.backward()
         optimizer.step()
 
-        # Validation
         model.eval()
 
         with torch.no_grad():
             val_logits = model(X_val_tensor)
             val_loss = criterion(val_logits, y_val_tensor)
 
-        # Track best model
         if val_loss.item() < best_val_loss:
             best_val_loss = val_loss.item()
             best_model_state = copy.deepcopy(model.state_dict())
@@ -99,7 +95,6 @@ def train_model(model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tenso
         else:
             epochs_without_improvement += 1
 
-        # Print progress
         if (epoch + 1) % 10 == 0:
             print(
                 f"Epoch {epoch + 1}: "
@@ -107,7 +102,6 @@ def train_model(model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tenso
                 f"Val loss = {val_loss.item():.4f}"
             )
 
-        # Early stopping
         if epochs_without_improvement >= patience:
             print(f"Early stopping at epoch {epoch + 1}")
             break
@@ -130,8 +124,8 @@ def main():
     X_train, X_val, _, y_train, y_val, _ = split_data(X, y)
 
     # Prepare tensors
-    X_train_tensor, X_val_tensor, y_train_tensor, y_val_tensor = (
-        prepare_tensors(X_train, X_val, y_train, y_val)
+    X_train_tensor, X_val_tensor, y_train_tensor, y_val_tensor = prepare_tensors(
+        X_train, X_val, y_train, y_val
     )
 
     # Initialize model
@@ -163,14 +157,12 @@ def main():
     print("\nPytorch MLP validation results:")
 
     for name, value in metrics.items():
-        print(f'{name}: {value:.3f}')
+        print(f"{name}: {value:.3f}")
 
     for threshold in [0.3, 0.5, 0.7]:
         threshold_pred = (y_proba >= threshold).astype(int)
 
-        precision = precision_score(
-            y_true, threshold_pred, zero_division=0
-        )
+        precision = precision_score(y_true, threshold_pred, zero_division=0)
         recall = recall_score(y_true, threshold_pred)
         f1 = f1_score(y_true, threshold_pred)
 
