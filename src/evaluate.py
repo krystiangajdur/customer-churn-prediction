@@ -1,9 +1,20 @@
 import pandas as pd
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 
-from sklearn.metrics import accuracy_score,precision_score,recall_score,f1_score,roc_auc_score,average_precision_score,confusion_matrix
 from preprocess import prepare_data, split_data
-from train_sklearn import build_dummy_pipeline, build_logistic_pipeline, build_random_forest_pipeline
-
+from train_sklearn import (
+    build_dummy_pipeline,
+    build_logistic_pipeline,
+    build_random_forest_pipeline,
+)
 
 
 def evaluate_model(y_true, y_pred, y_proba):
@@ -62,8 +73,7 @@ def main():
                     f"{recall_score(y_val, threshold_pred, zero_division=0):.3f}"
                 )
                 print(
-                    f"F1-score: "
-                    f"{f1_score(y_val, threshold_pred, zero_division=0):.3f}"
+                    f"F1-score: {f1_score(y_val, threshold_pred, zero_division=0):.3f}"
                 )
 
             # Confusion matrix at threshold 0.3

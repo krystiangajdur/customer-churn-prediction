@@ -1,9 +1,9 @@
 import pandas as pd
 from sklearn.metrics import confusion_matrix
 
+from evaluate import evaluate_model, print_metrics
 from preprocess import prepare_data, split_data
 from train_sklearn import build_logistic_pipeline
-from evaluate import evaluate_model, print_metrics
 
 
 def main():

@@ -2,9 +2,9 @@ import pandas as pd
 import torch
 from sklearn.metrics import confusion_matrix
 
+from evaluate import evaluate_model, print_metrics
 from preprocess import prepare_data, split_data
 from train_pytorch import ChurnMLP, prepare_tensors, train_model
-from evaluate import evaluate_model, print_metrics
 
 
 def main():
@@ -16,8 +16,9 @@ def main():
     X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)
 
     # Prepare training and validation tensors
-    (X_train_tensor, X_val_tensor, y_train_tensor, y_val_tensor, preprocessor) = prepare_tensors(
-        X_train, X_val, y_train, y_val, return_preprocessor=True)
+    (X_train_tensor, X_val_tensor, y_train_tensor, y_val_tensor, preprocessor) = (
+        prepare_tensors(X_train, X_val, y_train, y_val, return_preprocessor=True)
+    )
 
     # Transform test data using the training preprocessor
     X_test_processed = preprocessor.transform(X_test)
@@ -29,7 +30,9 @@ def main():
 
     model = ChurnMLP(input_size=X_train_tensor.shape[1])
 
-    model = train_model(model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tensor)
+    model = train_model(
+        model, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tensor
+    )
 
     # Final test evaluation
     model.eval()
